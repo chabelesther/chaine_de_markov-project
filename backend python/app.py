@@ -1,5 +1,10 @@
 # app.py
 import nltk
+from nltk.tokenize.punkt import PunktSentenceTokenizer
+
+# Remplacer le système de chargement par défaut
+nltk.tokenize.sent_tokenize = PunktSentenceTokenizer().tokenize
+
 nltk.download('punkt')
 
 from flask import Flask, request, jsonify
