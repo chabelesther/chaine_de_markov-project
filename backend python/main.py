@@ -14,6 +14,16 @@ import plotly.graph_objects as go
 # nltk.download("punkt")
 # nltk.download("punkt_tab")
 
+# Forcer le dossier standard
+if os.getenv("APPDATA"):
+    # Windows
+    nltk_data_path = os.path.join(os.getenv("APPDATA"), "nltk_data")
+    nltk.data.path.append(nltk_data_path)
+    nltk.download("punkt", download_dir=nltk_data_path)
+else:
+    # Linux (Render)
+    nltk.download("punkt")
+
 # Read the input file
 with open("Texte2.txt", "r", encoding="utf-8") as f:
     liste_de_phrases = [ligne.strip() for ligne in f if ligne.strip()]
