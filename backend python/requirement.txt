@@ -1,0 +1,7 @@
+nltk
+plotly
+numpy
+pandas
+networkx
+flask_cors
+flask
