@@ -5,3 +5,4 @@ pandas
 networkx
 flask_cors
 flask
+gunicorn
