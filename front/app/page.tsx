@@ -22,7 +22,10 @@ import dynamic from "next/dynamic";
 const Plotly = dynamic(() => import("react-plotly.js"), {
   ssr: false,
 });
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+// const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://chaine-de-markov-api.onrender.com";
 const Autocomplete: React.FC = () => {
   const [input, setInput] = useState<string>("");
   const [suggestions, setSuggestions] = useState<string[]>([]);
