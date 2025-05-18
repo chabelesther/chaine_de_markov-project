@@ -1,4 +1,3 @@
-// src/components/Autocomplete.tsx
 "use client";
 import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
@@ -20,9 +19,8 @@ import {
 } from "../types";
 import dynamic from "next/dynamic";
 
-// Importer Plot sans SSR
 const Plotly = dynamic(() => import("react-plotly.js"), {
-  ssr: false, // Désactiver le SSR
+  ssr: false,
 });
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 const Autocomplete: React.FC = () => {
@@ -42,7 +40,7 @@ const Autocomplete: React.FC = () => {
     bars_3d: null,
     graph: null,
   });
-  const [selectedPlotType, setSelectedPlotType] = useState<string | null>(null); // Null means show all
+  const [selectedPlotType, setSelectedPlotType] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const fetchAutocomplete = useCallback(async (partialInput: string) => {
