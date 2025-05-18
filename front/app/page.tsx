@@ -25,7 +25,7 @@ const Plotly = dynamic(() => import("react-plotly.js"), {
 // const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
-  "https://chaine-de-markov-api.onrender.com";
+  "https://chaine-de-markov-project.onrender.com";
 const Autocomplete: React.FC = () => {
   const [input, setInput] = useState<string>("");
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -175,7 +175,7 @@ const Autocomplete: React.FC = () => {
   ];
 
   return (
-    <div className="mx-auto max-w-4xl p-4 mb-32">
+    <div className="mx-auto max-w-4xl p-4 mb-32 relative">
       <h1 className="mb-5 text-2xl font-bold">Auto-complétion avec Markov</h1>
       <div className="mb-4">
         <label htmlFor="input-text" className="mb-2 block text-lg">

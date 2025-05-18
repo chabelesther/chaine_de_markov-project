@@ -35,7 +35,7 @@ modele = construire_modele_markov_hybride(liste_netoye, max_n_gram=2)
 
 # Initialize Flask
 app = Flask(__name__)
-origins = ["http://localhost:3000", "https://chaine-de-markov-api.onrender.com"]
+origins = ["http://localhost:3000", "https://chaine-de-markov-project.onrender.com"]
 CORS(app, resources={r"/*": {"origins": origins, "supports_credentials": True}})
 
 @app.route('/')
