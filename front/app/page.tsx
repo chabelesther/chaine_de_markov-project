@@ -2,7 +2,7 @@
 "use client";
 import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
-import Plotly from "react-plotly.js";
+// import Plotly from "react-plotly.js";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -18,7 +18,12 @@ import {
   VisualizationsResponse,
   PlotData,
 } from "../types";
+import dynamic from "next/dynamic";
 
+// Importer Plot sans SSR
+const Plotly = dynamic(() => import("react-plotly.js"), {
+  ssr: false, // Désactiver le SSR
+});
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 const Autocomplete: React.FC = () => {
   const [input, setInput] = useState<string>("");
