@@ -3,7 +3,14 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os
 from main import clean_txt, construire_modele_markov_hybride, generate_story, autocomplete, MatriceTransition, GrapheTransition
+import nltk
+# Forcer le dossier standard
+nltk_data_path = os.path.join(os.getenv("APPDATA"), "nltk_data")
+nltk.data.path.append(nltk_data_path)
 
+# # Téléchargement dans le bon dossier
+nltk.download("punkt", download_dir=nltk_data_path)
+nltk.download("punkt_tab", download_dir=nltk_data_path)
 # Verify Texte2.txt exists
 if not os.path.exists("Texte2.txt"):
     raise FileNotFoundError("Le fichier Texte2.txt est requis.")
