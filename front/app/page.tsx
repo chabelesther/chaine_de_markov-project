@@ -18,7 +18,7 @@ import dynamic from "next/dynamic";
 
 // Dynamique Plotly import
 const Plotly = dynamic(() => import("react-plotly.js"), { ssr: false });
-const API_URL = "http://localhost:5000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 // const API_URL =
 //   process.env.NEXT_PUBLIC_API_URL ||
 //   "https://chaine-de-markov-project.onrender.com";
