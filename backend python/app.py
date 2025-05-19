@@ -8,12 +8,12 @@ matplotlib.use('Agg')  # Configuration du backend non-interactif
 import matplotlib.pyplot as plt
 import seaborn as sns
 import networkx as nx
-import numpy as np
-import pandas as pd
-from flask import Flask, request, jsonify, send_file
+ 
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os
 from main import clean_txt, construire_modele_markov_hybride, generate_story, autocomplete, MatriceTransition, GrapheTransition
+
 # Forcer le dossier standard
 if os.getenv("APPDATA"):
     # Windows
