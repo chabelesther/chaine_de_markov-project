@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import axios from "axios";
 // import Plotly from "react-plotly.js";
 import { Button } from "@/components/ui/button";
@@ -66,40 +66,119 @@ const Autocomplete: React.FC = () => {
     }
   }, []);
 
-  const handleSuggestionClick = (suggestion: string, index: number) => {
-    setSelectedSuggestion(index);
-    setTimeout(() => {
+  const handleSuggestionClick = useCallback(
+    (suggestion: string, index: number) => {
+      setSelectedSuggestion(index);
       const selectedWord = suggestion.split(" (")[0].trim();
       const trimmedInput = input.trimEnd();
       const words = trimmedInput.split(/\s+/).filter(Boolean);
-      let newInput: string;
-      if (words.length === 0) {
-        newInput = selectedWord;
-      } else {
-        newInput =
-          trimmedInput + (trimmedInput.endsWith(" ") ? "" : " ") + selectedWord;
-      }
+      const newInput =
+        words.length === 0
+          ? selectedWord
+          : trimmedInput +
+            (trimmedInput.endsWith(" ") ? "" : " ") +
+            selectedWord;
+
+      // Mettre à jour l'input et les suggestions en une seule fois
       setInput(`${newInput} `);
-      setSelectedSuggestion(null);
       const newWords = newInput.split(/\s+/).filter(Boolean);
       const partialInput = newWords.slice(-2).join(" ");
-      fetchAutocomplete(partialInput);
-    }, 300);
-  };
 
+      // Utiliser requestAnimationFrame pour éviter les re-rendus multiples
+      requestAnimationFrame(() => {
+        setSelectedSuggestion(null);
+        fetchAutocomplete(partialInput);
+      });
+    },
+    [input, fetchAutocomplete]
+  );
+
+  // Utiliser useMemo pour mémoriser la liste des suggestions
+  const memoizedSuggestions = useMemo(() => suggestions, [suggestions]);
+
+  // Optimiser l'effet de debounce
   useEffect(() => {
-    const timeout = setTimeout(() => {
+    const words = input.trim().split(/\s+/);
+    const partialInput = words.slice(-2).join(" ");
+
+    const timeoutId = setTimeout(() => {
       if (!input.trim()) {
         setSuggestions([]);
         setError(null);
         return;
       }
-      const words = input.trim().split(/\s+/);
-      const partialInput = words.slice(-2).join(" ");
       fetchAutocomplete(partialInput);
     }, 300);
-    return () => clearTimeout(timeout);
+
+    return () => clearTimeout(timeoutId);
   }, [input, fetchAutocomplete]);
+
+  // Optimiser le composant SuggestionsList avec useMemo
+  const SuggestionsList = useMemo(
+    () => (
+      <div className="min-h-28 mt-4">
+        {error && (
+          <motion.p
+            className="text-red-400 mb-4 px-3 py-2 bg-red-900/20 rounded-md"
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+          >
+            {error}
+          </motion.p>
+        )}
+
+        {isLoading && !memoizedSuggestions.length && (
+          <div className="flex items-center justify-center py-4">
+            <div className="w-5 h-5 rounded-full border-2 border-yellow-500 border-t-transparent animate-spin"></div>
+            <span className="ml-2 text-yellow-300">Chargement...</span>
+          </div>
+        )}
+
+        <AnimatePresence mode="wait">
+          {memoizedSuggestions.length > 0 && (
+            <motion.div
+              className="rounded-md border border-yellow-500/30 overflow-hidden"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              {memoizedSuggestions.map((suggestion, index) => (
+                <motion.div
+                  key={`${suggestion}-${index}`}
+                  onClick={() => handleSuggestionClick(suggestion, index)}
+                  className={`cursor-pointer border-b border-yellow-500/20 p-3 last:border-b-0 hover:bg-yellow-500/20 transition-all ${
+                    selectedSuggestion === index ? "bg-yellow-600/40" : ""
+                  }`}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, x: -10 }}
+                  transition={{ duration: 0.15 }}
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.99 }}
+                >
+                  {suggestion}
+                </motion.div>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {!isLoading && !error && !memoizedSuggestions.length && (
+          <p className="text-slate-400 mt-2 text-sm">
+            Aucune suggestion disponible.
+          </p>
+        )}
+      </div>
+    ),
+    [
+      error,
+      isLoading,
+      memoizedSuggestions,
+      selectedSuggestion,
+      handleSuggestionClick,
+    ]
+  );
 
   const generatePhrases = async () => {
     setIsGenerating(true);
@@ -126,63 +205,6 @@ const Autocomplete: React.FC = () => {
   const handleSliderChange = (value: number[]) => {
     setNumberOfPhrases(value[0]);
   };
-
-  const SuggestionsList = () => (
-    <div className="min-h-28 mt-4">
-      {error && (
-        <motion.p
-          className="text-red-400 mb-4 px-3 py-2 bg-red-900/20 rounded-md"
-          initial={{ opacity: 0, x: -10 }}
-          animate={{ opacity: 1, x: 0 }}
-        >
-          {error}
-        </motion.p>
-      )}
-
-      {isLoading && !suggestions.length && (
-        <div className="flex items-center justify-center py-4">
-          <div className="w-5 h-5 rounded-full border-2 border-yellow-500 border-t-transparent animate-spin"></div>
-          <span className="ml-2 text-yellow-300">Chargement...</span>
-        </div>
-      )}
-
-      <AnimatePresence>
-        {suggestions.length > 0 && (
-          <motion.div
-            className="rounded-md border border-yellow-500/30 overflow-hidden"
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            {suggestions.map((suggestion, index) => (
-              <motion.div
-                key={index}
-                onClick={() => handleSuggestionClick(suggestion, index)}
-                className={`cursor-pointer border-b border-yellow-500/20 p-3 last:border-b-0 hover:bg-yellow-500/20 transition-all ${
-                  selectedSuggestion === index ? "bg-yellow-600/40" : ""
-                }`}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, x: -10 }}
-                transition={{ delay: index * 0.05, duration: 0.2 }}
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.99 }}
-              >
-                {suggestion}
-              </motion.div>
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {!isLoading && !error && !suggestions.length && (
-        <p className="text-slate-400 mt-2 text-sm">
-          Aucune suggestion disponible.
-        </p>
-      )}
-    </div>
-  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-white">
@@ -224,7 +246,7 @@ const Autocomplete: React.FC = () => {
                   placeholder="Entrez une phrase de départ..."
                   className="w-full bg-slate-800/70 border-yellow-500/40 text-white placeholder:text-slate-400 focus-visible:ring-yellow-500 mb-4"
                 />
-                <SuggestionsList />
+                {SuggestionsList}
               </div>
 
               <div className="mb-6">
@@ -354,7 +376,7 @@ const Autocomplete: React.FC = () => {
                   placeholder="Tapez ici... ex: 'ce' "
                   className="w-full bg-slate-800/70 border-yellow-500/40 text-white placeholder:text-slate-400 focus-visible:ring-yellow-500"
                 />
-                <SuggestionsList />
+                {SuggestionsList}
               </div>
             </motion.div>
           </TabsContent>
@@ -364,4 +386,4 @@ const Autocomplete: React.FC = () => {
   );
 };
 
-export default Autocomplete;
+export default React.memo(Autocomplete);
