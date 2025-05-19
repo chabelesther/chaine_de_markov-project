@@ -202,7 +202,7 @@ const Autocomplete: React.FC = () => {
                 key={index}
                 onClick={() => handleSuggestionClick(suggestion)}
                 //animation quand la suggestion apparait (re rendu)
-                className="cursor-pointer border-b p-2.5 last:border-b-0 hover:bg-gray-100 transition-opacity duration-300"
+                className="cursor-pointer border-b p-2.5 last:border-b-0 hover:bg-muted transition-opacity duration-300"
                 style={{
                   animation: "fadeIn 0.3s ease-in-out",
                   animationDelay: `${index * 100}ms`,
@@ -216,7 +216,7 @@ const Autocomplete: React.FC = () => {
           <p className="text-gray-500">Aucune suggestion disponible.</p>
         )}
       </div>
-      <div className=" fixed bottom-0 left-0 right-0 z-50 bg-white p-2 border-t flex flex-wrap gap-4 items-center justify-evenly">
+      <div className=" fixed bottom-0 left-0 right-0 z-50 bg-muted p-2 border-t flex flex-wrap gap-4 items-center justify-evenly">
         <Button onClick={generatePhrase} disabled={isGenerating}>
           {isGenerating ? "Génération en cours..." : "Générer une phrase"}
         </Button>

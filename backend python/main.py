@@ -10,9 +10,7 @@ import os
 import plotly.express as px
 import plotly.graph_objects as go
 
-# Ensure NLTK data is downloaded
-# nltk.download("punkt")
-# nltk.download("punkt_tab")
+
 
 # Forcer le dossier standard
 if os.getenv("APPDATA"):
