@@ -13,7 +13,6 @@ import {
 } from "@/components/ui/select";
 import {
   AutocompleteResponse,
-  GeneratePhraseResponse,
   VisualizationsResponse,
   PlotData,
 } from "../types";
@@ -21,20 +20,37 @@ import dynamic from "next/dynamic";
 import { motion, AnimatePresence } from "framer-motion";
 import { Data, Layout, Config } from "plotly.js";
 import { Typewriter } from "@/components/typewriter";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Slider } from "@/components/ui/slider";
 
 const Plotly = dynamic(() => import("react-plotly.js"), {
   ssr: false,
 });
-// const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "https://chaine-de-markov-project.onrender.com";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+// const API_URL =
+//   process.env.NEXT_PUBLIC_API_URL ||
+//   "https://chaine-de-markov-project.onrender.com";
+
+interface GeneratedPhrase {
+  phrase: string;
+  sequences: string[];
+  heatmap_image: string;
+  graph_image: string;
+}
+
 const Autocomplete: React.FC = () => {
   const [input, setInput] = useState<string>("");
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
-  const [generatedPhrase, setGeneratedPhrase] = useState<string>("");
+  const [generatedPhrases, setGeneratedPhrases] = useState<GeneratedPhrase[]>(
+    []
+  );
   const [visualizations, setVisualizations] = useState<{
     heatmap: PlotData | null;
     surface_3d: PlotData | null;
@@ -51,6 +67,7 @@ const Autocomplete: React.FC = () => {
   const [selectedSuggestion, setSelectedSuggestion] = useState<number | null>(
     null
   );
+  const [numberOfPhrases, setNumberOfPhrases] = useState<number>(1);
 
   const fetchAutocomplete = useCallback(async (partialInput: string) => {
     try {
@@ -114,31 +131,24 @@ const Autocomplete: React.FC = () => {
     return () => clearTimeout(timeout);
   }, [input, fetchAutocomplete]);
 
-  const generatePhrase = async () => {
+  const generatePhrases = async () => {
     setIsGenerating(true);
     try {
       setError(null);
-      const response = await axios.get<GeneratePhraseResponse>(
+      const response = await axios.get<GeneratedPhrase[]>(
         `${API_URL}/generate_phrase`,
-        { params: { start: input.trim() || "les bases", limit: 10 } }
+        {
+          params: {
+            start: input.trim() || "les bases",
+            limit: 20,
+            nombre_de_phrase: numberOfPhrases,
+          },
+        }
       );
-      setGeneratedPhrase(response.data.phrase);
-      setVisualizations({
-        heatmap: response.data.heatmap || null,
-        surface_3d: null,
-        bars_3d: null,
-        graph: response.data.graph || null,
-      });
+      setGeneratedPhrases(response.data);
     } catch (error) {
-      console.error("Erreur lors de la génération de la phrase:", error);
-      setGeneratedPhrase("Erreur lors de la génération.");
-      setVisualizations({
-        heatmap: null,
-        surface_3d: null,
-        bars_3d: null,
-        graph: null,
-      });
-      setError("Erreur lors de la génération de la phrase.");
+      console.error("Erreur lors de la génération des phrases:", error);
+      setError("Erreur lors de la génération des phrases.");
     }
     setIsGenerating(false);
   };
@@ -180,10 +190,8 @@ const Autocomplete: React.FC = () => {
     { key: "graph", label: "Graphe de transition" },
   ];
 
-  const copyToClipboard = () => {
-    if (generatedPhrase) {
-      navigator.clipboard.writeText(generatedPhrase);
-    }
+  const handleSliderChange = (value: number[]) => {
+    setNumberOfPhrases(value[0]);
   };
 
   return (
@@ -273,31 +281,100 @@ const Autocomplete: React.FC = () => {
               </p>
             )}
           </div>
+
+          <div className="mb-6">
+            <label className="block text-lg font-medium mb-2 text-yellow-300">
+              Nombre de phrases à générer : {numberOfPhrases}
+            </label>
+            <Slider
+              value={[numberOfPhrases]}
+              onValueChange={handleSliderChange}
+              min={1}
+              max={10}
+              step={1}
+              className="w-full"
+            />
+          </div>
+
+          <Button
+            onClick={generatePhrases}
+            disabled={isGenerating}
+            className="w-full bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 text-white shadow-lg shadow-yellow-700/30"
+          >
+            {isGenerating ? (
+              <>
+                <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin mr-2"></div>
+                Génération...
+              </>
+            ) : (
+              "Générer des phrases"
+            )}
+          </Button>
         </motion.div>
 
         <AnimatePresence>
-          {generatedPhrase && (
+          {generatedPhrases.length > 0 && (
             <motion.div
-              className="max-w-2xl mx-auto mb-10 backdrop-blur-md bg-white/5 p-6 rounded-xl shadow-lg border border-yellow-500/20"
+              className="max-w-4xl mx-auto mb-10"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.4 }}
             >
-              <div className="flex justify-between items-center mb-2">
-                <h2 className="text-xl font-semibold text-yellow-300">
-                  Phrase générée :
-                </h2>
-                <Button
-                  onClick={copyToClipboard}
-                  size="sm"
-                  variant="outline"
-                  className="text-xs border-yellow-500/30 bg-transparent text-yellow-300 hover:bg-yellow-500/20"
-                >
-                  Copier
-                </Button>
-              </div>
-              <Typewriter text={generatedPhrase} />
+              <Accordion type="single" collapsible className="w-full">
+                {generatedPhrases.map((phrase, index) => (
+                  <AccordionItem
+                    key={index}
+                    value={`phrase-${index}`}
+                    className="border border-yellow-500/20 rounded-lg mb-4 overflow-hidden"
+                  >
+                    <AccordionTrigger className="px-4 py-3 bg-white/5 hover:bg-white/10">
+                      <div className="flex items-center">
+                        <span className="text-yellow-300 mr-2">
+                          Phrase {index + 1}:
+                        </span>
+                        <span className="text-white truncate">
+                          {phrase.phrase}
+                        </span>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 py-3 bg-white/5">
+                      <div className="space-y-6">
+                        <div className="bg-white/5 p-4 rounded-lg">
+                          <h3 className="text-lg font-semibold text-yellow-300 mb-2">
+                            Phrase complète
+                          </h3>
+                          <Typewriter text={phrase.phrase} />
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="bg-white/5 p-4 rounded-lg">
+                            <h3 className="text-lg font-semibold text-yellow-300 mb-2">
+                              Carte de chaleur
+                            </h3>
+                            <img
+                              src={phrase.heatmap_image}
+                              alt="Carte de chaleur"
+                              className="w-full h-auto rounded-lg"
+                            />
+                          </div>
+
+                          <div className="bg-white/5 p-4 rounded-lg">
+                            <h3 className="text-lg font-semibold text-yellow-300 mb-2">
+                              Graphe de transition
+                            </h3>
+                            <img
+                              src={phrase.graph_image}
+                              alt="Graphe de transition"
+                              className="w-full h-auto rounded-lg"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
             </motion.div>
           )}
         </AnimatePresence>
@@ -361,23 +438,6 @@ const Autocomplete: React.FC = () => {
           transition={{ delay: 0.5, duration: 0.5, type: "spring" }}
         >
           <div className="container mx-auto flex flex-wrap items-center justify-evenly gap-4">
-            <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
-              <Button
-                onClick={generatePhrase}
-                disabled={isGenerating}
-                className="bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 text-white shadow-lg shadow-yellow-700/30"
-              >
-                {isGenerating ? (
-                  <>
-                    <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin mr-2"></div>
-                    Génération...
-                  </>
-                ) : (
-                  "Générer une phrase"
-                )}
-              </Button>
-            </motion.div>
-
             <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
               <Button
                 onClick={fetchVisualizations}

@@ -69,7 +69,7 @@ def construire_modele_markov_hybride(liste_de_listes, max_n_gram):
         }
     return modele_hybride
 
-def generate_story(markov_model, limit=100, start='my story'):
+def generate_story(markov_model, limit=10, start='my story'):
     n = 0
     curr_state = start
     story = curr_state + " "
@@ -116,12 +116,12 @@ class MatriceTransition:
             row_labels.add(row)
             for col in cols.keys():
                 col_labels.add(col)
-        all_labels = sorted(row_labels.union(col_labels))
+        all_labels = sorted(row_labels.union(col_labels))  # Fusion et tri des étiquettes
         df = pd.DataFrame(0.0, index=all_labels, columns=all_labels)
         for row, cols in self.data.items():
             for col, val in cols.items():
                 df.loc[row, col] = val
-        return df
+        return df  # Retourne la matrice
 
     def get_heatmap_json(self, mots):
         mots_valides = [mot for mot in mots if mot in self.df.index and mot in self.df.columns]
@@ -200,6 +200,10 @@ class MatriceTransition:
             )
         )
         return fig.to_dict()
+
+
+
+
 
 class GrapheTransition:
     def __init__(self, data):

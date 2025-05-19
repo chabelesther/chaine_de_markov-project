@@ -1,13 +1,14 @@
 # app.py
 import nltk
 from nltk.tokenize.punkt import PunktSentenceTokenizer
-
-# Remplacer le système de chargement par défaut
-nltk.tokenize.sent_tokenize = PunktSentenceTokenizer().tokenize
-
-nltk.download('punkt')
-
-from flask import Flask, request, jsonify
+import io
+import base64
+from matplotlib import pyplot as plt
+import seaborn as sns
+import networkx as nx
+import numpy as np
+import pandas as pd
+from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 import os
 from main import clean_txt, construire_modele_markov_hybride, generate_story, autocomplete, MatriceTransition, GrapheTransition
@@ -55,17 +56,61 @@ def autocomplete_route():
 def generate_phrase():
     start = request.args.get('start', 'les bases')
     limit = int(request.args.get('limit', 10))
-    var = generate_story(modele, limit=limit, start=start)
-    matrice = MatriceTransition(modele)
-    grapheur = GrapheTransition(modele)
-    return jsonify({
-        'phrase': var[0],
-        'sequences': var[1],
-        'heatmap': matrice.get_heatmap_json(var[1]),
-        'graph': grapheur.get_graph_json(var[1]),
-        # 'surface_3d': matrice.get_3d_surface_json(),
-        # 'bars_3d': matrice.get_3d_bars_json()
-    })
+    nombre_de_phrase = int(request.args.get('nombre_de_phrase', 1))
+    
+    phrases = []
+    for i in range(nombre_de_phrase):
+        var = generate_story(modele, limit=limit, start=start)
+        matrice = MatriceTransition(modele)
+        grapheur = GrapheTransition(modele)
+        
+        # Générer et sauvegarder les images
+        plt.figure(figsize=(10, 8))
+        sns.heatmap(matrice.df.loc[var[1], var[1]], annot=True, cmap="YlGnBu", fmt=".2f")
+        plt.title("Carte de chaleur")
+        plt.tight_layout()
+        
+        # Convertir la heatmap en base64
+        heatmap_buffer = io.BytesIO()
+        plt.savefig(heatmap_buffer, format='png', bbox_inches='tight')
+        plt.close()
+        heatmap_buffer.seek(0)
+        heatmap_base64 = base64.b64encode(heatmap_buffer.getvalue()).decode('utf-8')
+        
+        # Générer le graphe
+        G = grapheur.construire_graphe_depuis_phrase(var[1])
+        plt.figure(figsize=(10, 7))
+        pos = nx.spring_layout(G, seed=42, k=1.2)
+        edge_weights = [G[u][v]['weight'] for u, v in G.edges()]
+        max_weight = max(edge_weights) if edge_weights else 1
+        norm_weights = [w / max_weight for w in edge_weights]
+        cmap = plt.cm.viridis
+        edge_colors = [cmap(w) for w in norm_weights]
+        
+        nx.draw_networkx_nodes(G, pos, node_color='skyblue', node_size=1500)
+        nx.draw_networkx_edges(G, pos, edge_color=edge_colors, arrowstyle='-|>', arrowsize=25, width=2)
+        edge_labels = {(u, v): f"{d['weight']:.2f}" for u, v, d in G.edges(data=True)}
+        nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=10)
+        nx.draw_networkx_labels(G, pos, font_size=12, font_weight='bold')
+        plt.title("Graphe des transitions")
+        plt.axis('off')
+        plt.tight_layout()
+        
+        # Convertir le graphe en base64
+        graph_buffer = io.BytesIO()
+        plt.savefig(graph_buffer, format='png', bbox_inches='tight')
+        plt.close()
+        graph_buffer.seek(0)
+        graph_base64 = base64.b64encode(graph_buffer.getvalue()).decode('utf-8')
+        
+        phrases.append({
+            'phrase': var[0],
+            'sequences': var[1],
+            'heatmap_image': f"data:image/png;base64,{heatmap_base64}",
+            'graph_image': f"data:image/png;base64,{graph_base64}"
+        })
+    
+    return jsonify(phrases)
 
 @app.route('/visualizations', methods=['POST'])
 def visualizations():
