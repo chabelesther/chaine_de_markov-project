@@ -1,7 +1,7 @@
 nltk
- 
+pandas
 numpy
- 
+matplotlib
 networkx
 flask_cors
 flask
@@ -9,3 +9,4 @@ gunicorn
 pandas>=2.0.0
 plotly>=5.15.0
 narwhals>=1.0.0
+seaborn

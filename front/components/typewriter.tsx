@@ -5,9 +5,14 @@ import { motion } from "framer-motion";
 interface TypewriterProps {
   text: string;
   speed?: number;
+  className?: string;
 }
 
-export const Typewriter = ({ text, speed = 40 }: TypewriterProps) => {
+export const Typewriter = ({
+  text,
+  speed = 40,
+  className,
+}: TypewriterProps) => {
   const [displayedText, setDisplayedText] = useState("");
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
@@ -34,7 +39,7 @@ export const Typewriter = ({ text, speed = 40 }: TypewriterProps) => {
   }, [currentIndex, text, speed]);
 
   return (
-    <div className="leading-relaxed">
+    <div className={`leading-relaxed ${className}`}>
       {displayedText}
       {!isComplete && (
         <motion.span

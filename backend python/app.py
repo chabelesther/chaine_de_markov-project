@@ -3,7 +3,9 @@ import nltk
 from nltk.tokenize.punkt import PunktSentenceTokenizer
 import io
 import base64
-from matplotlib import pyplot as plt
+import matplotlib
+matplotlib.use('Agg')  # Configuration du backend non-interactif
+import matplotlib.pyplot as plt
 import seaborn as sns
 import networkx as nx
 import numpy as np
@@ -38,6 +40,9 @@ modele = construire_modele_markov_hybride(liste_netoye, max_n_gram=2)
 app = Flask(__name__)
 origins = ["http://localhost:3000", "https://chaine-de-markov-gmm.vercel.app"]
 CORS(app, resources={r"/*": {"origins": origins, "supports_credentials": True}})
+
+# Remplacer le système de chargement par défaut
+nltk.tokenize.sent_tokenize = PunktSentenceTokenizer().tokenize
 
 @app.route('/')
 def index():
