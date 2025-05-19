@@ -14,8 +14,10 @@ import {
 } from "@/components/ui/accordion";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import Plotly from "react-plotly.js";
+import dynamic from "next/dynamic";
 
+// Dynamique Plotly import
+const Plotly = dynamic(() => import("react-plotly.js"), { ssr: false });
 const API_URL = "http://localhost:5000";
 // const API_URL =
 //   process.env.NEXT_PUBLIC_API_URL ||
@@ -30,7 +32,7 @@ interface GeneratedPhrase {
 
 // Définir un type plus spécifique pour les données Plotly si possible
 // Pour l'instant, nous utilisons Partial<Plotly.PlotData> et Partial<Plotly.Layout>
-// pour éviter 'any' tout en restant flexible.
+
 interface PlotlyData {
   data: Partial<Plotly.PlotData>[];
   layout: Partial<Plotly.Layout>;
