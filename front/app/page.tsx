@@ -124,15 +124,11 @@ const Autocomplete: React.FC = () => {
       );
       setGeneratedPhrase(response.data.phrase);
       setVisualizations({
-        heatmap: response.data.heatmap,
+        heatmap: response.data.heatmap || null,
         surface_3d: null,
         bars_3d: null,
-        graph: response.data.graph,
+        graph: response.data.graph || null,
       });
-      //refetch visualizations
-      if (response.data.heatmap) {
-        fetchVisualizations();
-      }
     } catch (error) {
       console.error("Erreur lors de la génération de la phrase:", error);
       setGeneratedPhrase("Erreur lors de la génération.");
@@ -158,10 +154,10 @@ const Autocomplete: React.FC = () => {
         { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
       );
       setVisualizations({
-        heatmap: response.data.heatmap,
+        heatmap: response.data.heatmap || null,
         surface_3d: null,
         bars_3d: null,
-        graph: response.data.graph,
+        graph: response.data.graph || null,
       });
     } catch (error) {
       console.error(
@@ -218,7 +214,7 @@ const Autocomplete: React.FC = () => {
             id="input-text"
             type="text"
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={(e) => setInput(e.target.value.toLowerCase())}
             placeholder="Tapez ici..."
             className="w-full bg-slate-800/70 border-yellow-500/40 text-white placeholder:text-slate-400 focus-visible:ring-yellow-500"
           />
