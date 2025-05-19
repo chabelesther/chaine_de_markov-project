@@ -215,7 +215,7 @@ const Autocomplete: React.FC = () => {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value.toLowerCase())}
-            placeholder="Tapez ici..."
+            placeholder="Tapez ici... ex: 'ce' "
             className="w-full bg-slate-800/70 border-yellow-500/40 text-white placeholder:text-slate-400 focus-visible:ring-yellow-500"
           />
 
