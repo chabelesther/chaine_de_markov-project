@@ -355,7 +355,7 @@ const Autocomplete: React.FC = () => {
         </div>
 
         <motion.div
-          className="fixed bottom-0 left-0 right-0 z-50 bg-slate-900/80 backdrop-blur-md p-4 border-t border-yellow-500/30 shadow-lg"
+          className="z-50 bg-slate-900/80 backdrop-blur-md p-4 border-t border-yellow-500/30 shadow-lg"
           initial={{ y: 100 }}
           animate={{ y: 0 }}
           transition={{ delay: 0.5, duration: 0.5, type: "spring" }}
@@ -384,7 +384,7 @@ const Autocomplete: React.FC = () => {
                 disabled={isGenerating}
                 className="bg-yellow-700 hover:bg-yellow-800 text-white shadow-md"
               >
-                {isGenerating ? "Récupération..." : "Actualiser visualisations"}
+                {isGenerating ? "Récupération..." : "Actualiser"}
               </Button>
             </motion.div>
 
