@@ -16,10 +16,10 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-// const API_URL =
-//   process.env.NEXT_PUBLIC_API_URL ||
-//   "https://chaine-de-markov-project.onrender.com";
+// const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://chaine-de-markov-project.onrender.com";
 
 interface GeneratedPhrase {
   phrase: string;
