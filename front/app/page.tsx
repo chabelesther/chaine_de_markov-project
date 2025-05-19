@@ -14,17 +14,32 @@ import {
 } from "@/components/ui/accordion";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import Plotly from "react-plotly.js";
 
-// const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "https://chaine-de-markov-project.onrender.com";
+const API_URL = "http://localhost:5000";
+// const API_URL =
+//   process.env.NEXT_PUBLIC_API_URL ||
+//   "https://chaine-de-markov-project.onrender.com";
 
 interface GeneratedPhrase {
   phrase: string;
   sequences: string[];
   heatmap_image: string;
   graph_image: string;
+}
+
+// Définir un type plus spécifique pour les données Plotly si possible
+// Pour l'instant, nous utilisons Partial<Plotly.PlotData> et Partial<Plotly.Layout>
+// pour éviter 'any' tout en restant flexible.
+interface PlotlyData {
+  data: Partial<Plotly.PlotData>[];
+  layout: Partial<Plotly.Layout>;
+}
+
+// Interface pour les données de visualisation de l'onglet auto-complétion
+interface AutocompleteVisualizationData {
+  heatmap: PlotlyData | null; // Heatmap peut être null si non générée
+  graph_image: string; // base64 image string
 }
 
 const Autocomplete: React.FC = () => {
@@ -41,6 +56,11 @@ const Autocomplete: React.FC = () => {
     null
   );
   const [numberOfPhrases, setNumberOfPhrases] = useState<number>(1);
+
+  // État pour les visualisations de l'onglet auto-complétion
+  const [autocompleteVisuals, setAutocompleteVisuals] =
+    useState<AutocompleteVisualizationData | null>(null);
+  const [isLoadingVisuals, setIsLoadingVisuals] = useState<boolean>(false);
 
   const fetchAutocomplete = useCallback(async (partialInput: string) => {
     if (!partialInput.trim()) {
@@ -65,6 +85,39 @@ const Autocomplete: React.FC = () => {
     }
   }, []);
 
+  // Fonction pour récupérer les visualisations pour l'onglet auto-complétion
+  const fetchVisualizationsForAutocomplete = useCallback(
+    async (text: string) => {
+      if (!text.trim()) {
+        setAutocompleteVisuals(null);
+        return;
+      }
+      setIsLoadingVisuals(true);
+      setError(null);
+      try {
+        const words = text.trim().split(/\s+/).filter(Boolean).join(",");
+        const response = await axios.post<AutocompleteVisualizationData>(
+          `${API_URL}/visualizations`,
+          new URLSearchParams({ mots: words }),
+          { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
+        );
+        setAutocompleteVisuals(response.data);
+      } catch (err) {
+        console.error(
+          "Erreur lors de la récupération des visualisations:",
+          err
+        );
+        setError(
+          "Erreur lors de la récupération des visualisations pour l'auto-complétion."
+        );
+        setAutocompleteVisuals(null);
+      } finally {
+        setIsLoadingVisuals(false);
+      }
+    },
+    []
+  );
+
   const handleSuggestionClick = useCallback(
     (suggestion: string, index: number) => {
       setSelectedSuggestion(index);
@@ -81,15 +134,16 @@ const Autocomplete: React.FC = () => {
       // Mettre à jour l'input et les suggestions en une seule fois
       setInput(`${newInput} `);
       const newWords = newInput.split(/\s+/).filter(Boolean);
-      const partialInput = newWords.slice(-2).join(" ");
+      const partialInputForAutocomplete = newWords.slice(-2).join(" ");
 
-      // Utiliser requestAnimationFrame pour éviter les re-rendus multiples
       requestAnimationFrame(() => {
         setSelectedSuggestion(null);
-        fetchAutocomplete(partialInput);
+        fetchAutocomplete(partialInputForAutocomplete); // Pour les suggestions suivantes
+        // Après avoir cliqué sur une suggestion, on peut récupérer les visualisations pour l'input actuel
+        fetchVisualizationsForAutocomplete(newInput);
       });
     },
-    [input, fetchAutocomplete]
+    [input, fetchAutocomplete, fetchVisualizationsForAutocomplete]
   );
 
   // Utiliser useMemo pour mémoriser la liste des suggestions
@@ -99,18 +153,24 @@ const Autocomplete: React.FC = () => {
   useEffect(() => {
     const words = input.trim().split(/\s+/);
     const partialInput = words.slice(-2).join(" ");
+    const fullInputForVisuals = input.trim();
 
     const timeoutId = setTimeout(() => {
       if (!input.trim()) {
         setSuggestions([]);
+        setAutocompleteVisuals(null); // Nettoyer les visualisations si l'input est vide
         setError(null);
         return;
       }
       fetchAutocomplete(partialInput);
-    }, 300);
+      if (fullInputForVisuals.split(/\s+/).filter(Boolean).length >= 1) {
+        // Au moins 1 mot pour les visuals
+        fetchVisualizationsForAutocomplete(fullInputForVisuals);
+      }
+    }, 300); // Le délai pourrait être différent pour les visualisations si besoin
 
     return () => clearTimeout(timeoutId);
-  }, [input, fetchAutocomplete]);
+  }, [input, fetchAutocomplete, fetchVisualizationsForAutocomplete]);
 
   // Optimiser le composant SuggestionsList avec useMemo
   const SuggestionsList = useMemo(
@@ -377,6 +437,73 @@ const Autocomplete: React.FC = () => {
                 />
                 {SuggestionsList}
               </div>
+
+              {/* Section pour afficher les visualisations de l'auto-complétion */}
+              <AnimatePresence>
+                {isLoadingVisuals && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="mt-6 flex items-center justify-center py-4"
+                  >
+                    <div className="w-5 h-5 rounded-full border-2 border-yellow-500 border-t-transparent animate-spin"></div>
+                    <span className="ml-2 text-yellow-300">
+                      Chargement des visualisations...
+                    </span>
+                  </motion.div>
+                )}
+                {error && autocompleteVisuals === null && !isLoadingVisuals && (
+                  <motion.p
+                    className="text-red-400 mt-6 mb-4 px-3 py-2 bg-red-900/20 rounded-md"
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                  >
+                    {error}{" "}
+                    {/* Afficher l'erreur spécifique aux visualisations si elle existe */}
+                  </motion.p>
+                )}
+                {autocompleteVisuals && !isLoadingVisuals && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    className="mt-8 space-y-6"
+                  >
+                    <div className="bg-white/5 p-4 rounded-lg">
+                      <h3 className="text-lg font-semibold text-yellow-300 mb-2">
+                        Graphe de transition (Auto-complétion)
+                      </h3>
+                      <div className="flex justify-center">
+                        <img
+                          src={autocompleteVisuals.graph_image}
+                          alt="Graphe de transition pour l'auto-complétion"
+                          className="max-w-full h-auto rounded-lg shadow-lg"
+                        />
+                      </div>
+                    </div>
+                    {autocompleteVisuals.heatmap &&
+                      autocompleteVisuals.heatmap.data && (
+                        <div className="bg-white/5 p-4 rounded-lg">
+                          <h3 className="text-lg font-semibold text-yellow-300 mb-2">
+                            Carte de chaleur (Auto-complétion)
+                          </h3>
+                          <div className="flex justify-center overflow-x-auto">
+                            <Plotly
+                              data={autocompleteVisuals.heatmap.data}
+                              layout={autocompleteVisuals.heatmap.layout}
+                              config={{
+                                responsive: true,
+                                displayModeBar: false,
+                              }}
+                              style={{ width: "100%", height: "100%" }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.div>
           </TabsContent>
         </Tabs>

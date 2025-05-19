@@ -12,7 +12,43 @@ import networkx as nx
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os
-from main import clean_txt, construire_modele_markov_hybride, generate_story, autocomplete, MatriceTransition, GrapheTransition
+from main import clean_txt, construire_modele_markov_hybride, generate_story, autocomplete, MatriceTransition
+# GrapheTransition n'est plus importé de main
+
+# Définition de la nouvelle classe GrapheTransition fournie par l'utilisateur
+class GrapheTransition:
+    def __init__(self, data):
+        self.data = data
+
+    def trouver_valeur(self, source, cible):
+        return self.data.get(source, {}).get(cible, 0.0)
+
+    def construire_graphe_depuis_mots(self, mots_liste):
+        G = nx.DiGraph()
+        if not mots_liste or len(mots_liste) < 2:
+            return G
+        for i in range(len(mots_liste) - 1):
+            source = mots_liste[i]
+            cible = mots_liste[i+1]
+            poids = self.trouver_valeur(source, cible)
+            if poids > 0: # Ajouter l'arête seulement si la transition existe
+                G.add_edge(source, cible, weight=poids)
+        return G
+
+    def construire_graphe_depuis_phrase(self, segments):
+        G = nx.DiGraph()  # Création d'un graphe orienté
+        if not segments: # S'assurer que segments n'est pas vide
+            return G
+        for i in range(len(segments) - 1):
+            source = segments[i]  # Noeud source
+            cible = segments[i + 1]  # Noeud cible
+            poids = self.trouver_valeur(source, cible)  # Poids de l'arête
+            G.add_edge(source, cible, weight=poids)  # Ajout de l'arête
+        return G  # Retourne le graphe
+
+# La méthode afficher_graphe du code utilisateur est intégrée dans generate_phrase
+# car plt.show() n'est pas adapté pour la génération d'images en backend.
+# Le code pour la génération d'image base64 est conservé.
 
 # Forcer le dossier standard
 # if os.getenv("APPDATA"):
@@ -77,7 +113,7 @@ def generate_phrase():
     for i in range(nombre_de_phrase):
         var = generate_story(modele, limit=limit, start=start)
         matrice = MatriceTransition(modele)
-        grapheur = GrapheTransition(modele)
+        grapheur = GrapheTransition(modele) # Utilise la nouvelle classe GrapheTransition
         
         # Générer et sauvegarder les images
         plt.figure(figsize=(10, 8))
@@ -92,29 +128,50 @@ def generate_phrase():
         heatmap_buffer.seek(0)
         heatmap_base64 = base64.b64encode(heatmap_buffer.getvalue()).decode('utf-8')
         
-        # Générer le graphe
+        # Générer le graphe avec le style demandé (arêtes courbées)
         G = grapheur.construire_graphe_depuis_phrase(var[1])
-        plt.figure(figsize=(10, 7))
-        pos = nx.spring_layout(G, seed=42, k=1.2)
-        edge_weights = [G[u][v]['weight'] for u, v in G.edges()]
-        max_weight = max(edge_weights) if edge_weights else 1
-        norm_weights = [w / max_weight for w in edge_weights]
-        cmap = plt.cm.viridis
-        edge_colors = [cmap(w) for w in norm_weights]
         
-        nx.draw_networkx_nodes(G, pos, node_color='skyblue', node_size=1500)
-        nx.draw_networkx_edges(G, pos, edge_color=edge_colors, arrowstyle='-|>', arrowsize=25, width=2)
-        edge_labels = {(u, v): f"{d['weight']:.2f}" for u, v, d in G.edges(data=True)}
-        nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=10)
-        nx.draw_networkx_labels(G, pos, font_size=12, font_weight='bold')
-        plt.title("Graphe des transitions")
-        plt.axis('off')
-        plt.tight_layout()
+        plt.figure(figsize=(10, 7)) # Taille de la figure
+        if G.number_of_nodes() == 0: # Graphe vide
+             # Créer une image vide ou avec un message
+            plt.text(0.5, 0.5, "Pas de données pour afficher le graphe", horizontalalignment='center', verticalalignment='center')
+            plt.axis('off')
+        else:
+            pos = nx.spring_layout(G, seed=42, k=1.2)  # Disposition des noeuds
+            edge_weights = [G[u][v]['weight'] for u, v in G.edges()]  # Poids des arêtes
+            max_weight = max(edge_weights) if edge_weights else 1  # Normalisation
+            # S'assurer que max_weight n'est pas zéro pour éviter la division par zéro
+            if max_weight == 0:
+                max_weight = 1
+                
+            norm_weights = [w / max_weight for w in edge_weights]  # Poids normalisés
+            cmap = plt.cm.viridis  # Palette de couleurs
+            edge_colors = [cmap(w) for w in norm_weights]  # Couleurs des arêtes
+
+            nx.draw_networkx_nodes(G, pos, node_color='skyblue', node_size=1500)  # Dessin des noeuds
+            nx.draw_networkx_edges(
+                G,
+                pos,
+                edge_color=edge_colors,
+                arrowstyle='-|>',
+                arrowsize=25,
+                width=2,
+                connectionstyle='arc3,rad=0.1',  # Style d'arête courbée
+                min_source_margin=30,
+                min_target_margin=30
+            )  # Dessin des arêtes
+            edge_labels = {(u, v): f"{d['weight']:.2f}" for u, v, d in G.edges(data=True)}  # Étiquettes des arêtes
+            nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=10)  # Affichage des étiquettes
+            nx.draw_networkx_labels(G, pos, font_size=12, font_weight='bold')  # Étiquettes des noeuds
+            plt.title("Graphe des transitions", fontsize=14)  # Titre
+            plt.axis('off')  # Suppression des axes
+        
+        plt.tight_layout()  # Ajustement de la mise en page
         
         # Convertir le graphe en base64
         graph_buffer = io.BytesIO()
         plt.savefig(graph_buffer, format='png', bbox_inches='tight')
-        plt.close()
+        plt.close() # Fermer la figure explicitement
         graph_buffer.seek(0)
         graph_base64 = base64.b64encode(graph_buffer.getvalue()).decode('utf-8')
         
@@ -129,14 +186,60 @@ def generate_phrase():
 
 @app.route('/visualizations', methods=['POST'])
 def visualizations():
-    mots = request.form.get('mots', '').split(',')
+    mots_str = request.form.get('mots', '')
+    if not mots_str:
+        return jsonify({'error': 'Aucun mot fourni'}), 400
+    
+    mots_liste = [mot.strip() for mot in mots_str.split(',') if mot.strip()]
+    if not mots_liste or len(mots_liste) < 1: # Doit avoir au moins un mot pour la heatmap, deux pour le graphe
+        return jsonify({'error': 'Liste de mots invalide ou insuffisante'}), 400
+
     matrice = MatriceTransition(modele)
     grapheur = GrapheTransition(modele)
+
+    # Génération de la heatmap
+    heatmap_json = matrice.get_heatmap_json(mots_liste)
+
+    # Génération de l'image du graphe
+    G = grapheur.construire_graphe_depuis_mots(mots_liste) # Utiliser une méthode adaptée pour une liste de mots
+    
+    graph_base64 = "" # Initialiser en cas de graphe vide
+    plt.figure(figsize=(10, 7))
+    if G.number_of_nodes() == 0 or G.number_of_edges() == 0:
+        plt.text(0.5, 0.5, "Pas de données pour afficher le graphe\npour les mots fournis.", horizontalalignment='center', verticalalignment='center', wrap=True)
+        plt.axis('off')
+    else:
+        pos = nx.spring_layout(G, seed=42, k=1.2)
+        edge_weights = [G[u][v]['weight'] for u, v in G.edges()]
+        max_w = max(edge_weights) if edge_weights else 1
+        if max_w == 0: max_w = 1 # Eviter division par zéro
+            
+        norm_weights = [w / max_w for w in edge_weights]
+        cmap = plt.cm.viridis
+        edge_colors = [cmap(w) for w in norm_weights]
+
+        nx.draw_networkx_nodes(G, pos, node_color='skyblue', node_size=1500)
+        nx.draw_networkx_edges(
+            G, pos, edge_color=edge_colors, arrowstyle='-|>',
+            arrowsize=25, width=2, connectionstyle='arc3,rad=0.1',
+            min_source_margin=30, min_target_margin=30
+        )
+        edge_labels = {(u, v): f"{d['weight']:.2f}" for u, v, d in G.edges(data=True)}
+        nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=10)
+        nx.draw_networkx_labels(G, pos, font_size=12, font_weight='bold')
+        plt.title("Graphe des transitions pour les mots fournis", fontsize=14)
+        plt.axis('off')
+    
+    plt.tight_layout()
+    graph_buffer = io.BytesIO()
+    plt.savefig(graph_buffer, format='png', bbox_inches='tight')
+    plt.close()
+    graph_buffer.seek(0)
+    graph_base64 = base64.b64encode(graph_buffer.getvalue()).decode('utf-8')
+
     return jsonify({
-        'heatmap': matrice.get_heatmap_json(mots),
-        # 'surface_3d': matrice.get_3d_surface_json(),
-        # 'bars_3d': matrice.get_3d_bars_json(),
-        'graph': grapheur.get_graph_json(mots)
+        'heatmap': heatmap_json,
+        'graph_image': f"data:image/png;base64,{graph_base64}"
     })
 
 if __name__ == '__main__':

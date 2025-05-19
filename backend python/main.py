@@ -290,3 +290,5 @@ class GrapheTransition:
                             yaxis=dict(showgrid=False, zeroline=False)
                         ))
         return fig.to_dict()
+    
+
