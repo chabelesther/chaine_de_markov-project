@@ -13,14 +13,24 @@ import plotly.graph_objects as go
 
 
 # Forcer le dossier standard
-if os.getenv("APPDATA"):
-    # Windows
-    nltk_data_path = os.path.join(os.getenv("APPDATA"), "nltk_data")
-    nltk.data.path.append(nltk_data_path)
-    nltk.download("punkt", download_dir=nltk_data_path)
-else:
-    # Linux (Render)
-    nltk.download("punkt")
+# if os.getenv("APPDATA"):
+#     # Windows
+#     nltk_data_path = os.path.join(os.getenv("APPDATA"), "nltk_data")
+#     nltk.data.path.append(nltk_data_path)
+#     nltk.download("punkt", download_dir=nltk_data_path)
+# else:
+#     # Linux (Render)
+#     nltk.download("punkt")
+# Définir un répertoire persistant pour les données NLTK
+nltk_data_dir = '/opt/render/project/src/nltk_data'
+os.makedirs(nltk_data_dir, exist_ok=True)
+nltk.data.path.append(nltk_data_dir)
+
+# Télécharger punkt_tab si nécessaire
+try:
+    nltk.data.find('tokenizers/punkt_tab')
+except LookupError:
+    nltk.download('punkt_tab', download_dir=nltk_data_dir)
 
 # Read the input file
 with open("Texte2.txt", "r", encoding="utf-8") as f:

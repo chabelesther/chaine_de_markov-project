@@ -15,15 +15,25 @@ import os
 from main import clean_txt, construire_modele_markov_hybride, generate_story, autocomplete, MatriceTransition, GrapheTransition
 
 # Forcer le dossier standard
-if os.getenv("APPDATA"):
-    # Windows
-    nltk_data_path = os.path.join(os.getenv("APPDATA"), "nltk_data")
-    nltk.data.path.append(nltk_data_path)
-    # Téléchargement dans le bon dossier
-    nltk.download("punkt", download_dir=nltk_data_path)
-else:
-    # Linux (Render)
-    nltk.download("punkt")
+# if os.getenv("APPDATA"):
+#     # Windows
+#     nltk_data_path = os.path.join(os.getenv("APPDATA"), "nltk_data")
+#     nltk.data.path.append(nltk_data_path)
+#     # Téléchargement dans le bon dossier
+#     nltk.download("punkt", download_dir=nltk_data_path)
+# else:
+#     # Linux (Render)
+#     nltk.download("punkt")
+# Définir un répertoire persistant pour les données NLTK
+nltk_data_dir = '/opt/render/project/src/nltk_data'
+os.makedirs(nltk_data_dir, exist_ok=True)
+nltk.data.path.append(nltk_data_dir)
+
+# Télécharger punkt_tab si nécessaire
+try:
+    nltk.data.find('tokenizers/punkt_tab')
+except LookupError:
+    nltk.download('punkt_tab', download_dir=nltk_data_dir)
 
 # Verify Texte2.txt exists
 if not os.path.exists("Texte2.txt"):
